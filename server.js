@@ -3,7 +3,7 @@ const app = express()
 const bodyParser = require('body-parser')
 const MongoClient = require('mongodb').MongoClient
 
-var db, collection;
+let db, collection;
 
 const url = "mongodb+srv://demo:demo@cluster0-q2ojb.mongodb.net/test?retryWrites=true";
 const dbName = "demo";
@@ -39,10 +39,31 @@ app.post('/messages', (req, res) => {
 })
 
 app.put('/messages', (req, res) => {
+  // Check if the request body has a thumbdown
+  if(Object.hasOwn(req.body, 'thumbDown')){
+    db.collection('messages')
+    .findOneAndUpdate({name: req.body.name, msg: req.body.msg}, {
+    $inc: {
+      thumbDown: -1
+    }}, 
+    {
+    sort: {_id: -1},
+    upsert: true
+  }, (err, result) => {
+    if (err) return res.send(err)
+    res.send(result)
+  })
+  }
+  else{
   db.collection('messages')
   .findOneAndUpdate({name: req.body.name, msg: req.body.msg}, {
-    $set: {
-      thumbUp:req.body.thumbUp + 1
+    // $set: {
+    //   thumbUp:req.body.thumbUp + 1
+    // }
+    // inc over set to prevents lost updates when multiple users click
+    $inc: {
+      // increase thumbUp directly
+      thumbUp:1
     }
   }, {
     sort: {_id: -1},
@@ -51,6 +72,7 @@ app.put('/messages', (req, res) => {
     if (err) return res.send(err)
     res.send(result)
   })
+}
 })
 
 app.delete('/messages', (req, res) => {
